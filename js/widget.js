@@ -106,8 +106,8 @@ async function handleOnboarding(e) {
 
 function startChatFlow(profile) {
   const firstName = profile.name ? profile.name.split(' ')[0] : 'Kak';
-  addBotMessage(`Halo <b>${escapeHTML(firstName)}</b>! 👋<br>Selamat datang di NiagaBio Assistant. Ada yang bisa saya bantu?`, [
-    { text: '🙋 Bicara dengan Admin', action: () => requestAdmin() }
+  addBotMessage(`Halo <b>${escapeHTML(firstName)}</b>, selamat datang di NiagaBio Assistant. Ada yang bisa saya bantu?`, [
+    { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
   ]);
 }
 
@@ -124,7 +124,7 @@ async function requestAdmin() {
     hideTyping();
     if (!res.ok) throw new Error(body.error);
     addBotMessage(`Siap. Saya arahkan ke Admin NiagaBio supaya kamu bisa lanjut ngobrol langsung.`, [
-      { text: '💬 Buka WhatsApp Admin', action: () => window.open(body.whatsapp_url || window.__adminWhatsappUrl, '_blank') }
+      { text: '<i class="bi bi-whatsapp"></i> Buka WhatsApp Admin', action: () => window.open(body.whatsapp_url || window.__adminWhatsappUrl, '_blank') }
     ]);
   } catch (e) {
     hideTyping();
@@ -163,7 +163,7 @@ async function handleSend(e) {
     const body = await res.json();
     hideTyping();
     if (res.status === 429) {
-      addBotMessage('Pesan terlalu cepat, tunggu sebentar ya 🙏');
+      addBotMessage('Pesan terlalu cepat, tunggu sebentar ya.');
       return;
     }
     if (!res.ok) throw new Error(body.error || 'chat_failed');
@@ -172,7 +172,7 @@ async function handleSend(e) {
   } catch (err) {
     hideTyping();
     addBotMessage('Maaf, terjadi gangguan. Silakan coba lagi atau hubungi Admin.', [
-      { text: '🙋 Bicara dengan Admin', action: () => requestAdmin() }
+      { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
     ]);
     console.error(err);
   } finally {
@@ -191,7 +191,7 @@ function resetSession() {
 function closeChatSession() {
   document.getElementById('headerDropdown').classList.add('hidden');
   setBlockOverlay('Sesi chat ditutup. Klik untuk memulai sesi baru.', true);
-  addBotMessage('Sesi chat telah ditutup. Terima kasih! 😊');
+  addBotMessage('Sesi chat telah ditutup. Terima kasih.');
 }
 
 function setBlockOverlay(text, withReload = false) {
@@ -258,7 +258,7 @@ function addBotMessage(htmlContent, options = []) {
   if (options.length) {
     optsHTML = '<div class="msg-options">' + options.map((o, i) => `<button data-i="${i}">${o.text}</button>`).join('') + '</div>';
   }
-  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
+  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webpg" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
   msgContainer.appendChild(row);
   if (options.length) {
     row.querySelectorAll('.msg-options button').forEach((btn, i) => btn.addEventListener('click', () => options[i].action()));
