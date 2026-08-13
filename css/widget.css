@@ -45,6 +45,8 @@ body {
 .nb-header h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .nb-header p { margin: 2px 0 0; font-size: 11px; color: rgba(255,255,255,.78); display: flex; align-items: center; gap: 6px; font-weight: 500; }
 .nb-dot-sm { width: 6px; height: 6px; background: var(--nb-accent-dot); border-radius: 50%; animation: pulse 2.4s ease-in-out infinite; }
+.nb-icon-btn1 { background: none; border: none; color: #fff; padding: 8px; border-radius: var(--r-sm); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.nb-icon-btn:hover { background: rgba(255,255,255,.12); }
 .nb-icon-btn { background: none; border: none; color: #1622A8; padding: 8px; border-radius: var(--r-sm); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .nb-icon-btn:hover { background: rgba(255,255,255,.12); }
 .nb-menu-wrap { position: relative; }
