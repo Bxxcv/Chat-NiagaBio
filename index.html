@@ -27,7 +27,7 @@
         <div class="nb-menu-wrap">
           <button id="menuBtn" class="nb-icon-btn" aria-label="Menu"><i class="bi bi-three-dots-vertical"></i></button>
           <div id="headerDropdown" class="nb-dropdown hidden">
-            <a href="https://niagabio.com" target="_blank" rel="noopener noreferrer"><i class="bi bi-globe"></i><span>Halaman Brand</span></a>
+            <a href="https://niaga-bio.vercel.app" target="_blank" rel="noopener noreferrer"><i class="bi bi-globe"></i><span>Beranda</span></a>
             <button id="resetBtn" type="button"><i class="bi bi-arrow-clockwise"></i><span>Ganti Akun / Reset</span></button>
             <div class="nb-divider"></div>
             <button id="closeSessionBtn" type="button" class="nb-danger-item"><i class="bi bi-x-circle"></i><span>Tutup Chat</span></button>
@@ -57,7 +57,9 @@
       </div>
 
       <form id="chatForm" class="nb-composer">
-        <button type="button" id="uploadBtn" class="nb-icon-btn" title="Lampirkan Foto"><i class="bi bi-link-45deg"></i></button>
+        <button type="button" id="uploadBtn" class="nb-icon-btn" title="Lampirkan Foto">
+          <i class="bi bi-link-45deg"></i>
+          </button>
         <input type="file" id="imageInput" accept="image/*" class="hidden">
         <input type="text" id="chatInput" placeholder="Tulis pesan kamu..." autocomplete="off">
         <button type="submit" id="sendBtn" class="nb-send-btn" aria-label="Kirim"><i class="bi bi-send-fill"></i></button>

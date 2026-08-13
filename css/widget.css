@@ -45,7 +45,7 @@ body {
 .nb-header h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .nb-header p { margin: 2px 0 0; font-size: 11px; color: rgba(255,255,255,.78); display: flex; align-items: center; gap: 6px; font-weight: 500; }
 .nb-dot-sm { width: 6px; height: 6px; background: var(--nb-accent-dot); border-radius: 50%; animation: pulse 2.4s ease-in-out infinite; }
-.nb-icon-btn { background: none; border: none; color: #fff; padding: 8px; border-radius: var(--r-sm); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.nb-icon-btn { background: none; border: none; color: #1622A8; padding: 8px; border-radius: var(--r-sm); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .nb-icon-btn:hover { background: rgba(255,255,255,.12); }
 .nb-menu-wrap { position: relative; }
 .nb-dropdown { position: absolute; right: 0; top: 44px; background: #fff; border-radius: var(--r-md); box-shadow: 0 16px 32px -8px rgba(20,32,28,.2); border: 1px solid var(--nb-border); padding: var(--s-2) 0; width: 204px; z-index: 50; }
