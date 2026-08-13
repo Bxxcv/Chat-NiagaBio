@@ -168,7 +168,7 @@ async function handleSend(e) {
     }
     if (!res.ok) throw new Error(body.error || 'chat_failed');
     chatSessionId = body.session_id;
-    addBotMessage(escapeHTML(body.reply).replace(/\n/g, '<br>'));
+    addBotMessage(formatReply(body.reply));
   } catch (err) {
     hideTyping();
     addBotMessage('Maaf, terjadi gangguan. Silakan coba lagi atau hubungi Admin.', [
@@ -258,7 +258,7 @@ function addBotMessage(htmlContent, options = []) {
   if (options.length) {
     optsHTML = '<div class="msg-options">' + options.map((o, i) => `<button data-i="${i}">${o.text}</button>`).join('') + '</div>';
   }
-  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='assets/bot-avatar.webp';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
+  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
   msgContainer.appendChild(row);
   if (options.length) {
     row.querySelectorAll('.msg-options button').forEach((btn, i) => btn.addEventListener('click', () => options[i].action()));
@@ -269,6 +269,13 @@ function addBotMessage(htmlContent, options = []) {
 function showTyping() { typingIndicator.classList.remove('hidden'); scrollToBottom(); }
 function hideTyping() { typingIndicator.classList.add('hidden'); }
 function scrollToBottom() { chatBody.scrollTop = chatBody.scrollHeight; }
+
+function formatReply(text) {
+  const escaped = escapeHTML(text);
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\n/g, '<br>');
+}
 
 function escapeHTML(str) {
   return String(str || '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
