@@ -258,7 +258,7 @@ function addBotMessage(htmlContent, options = []) {
   if (options.length) {
     optsHTML = '<div class="msg-options">' + options.map((o, i) => `<button data-i="${i}">${o.text}</button>`).join('') + '</div>';
   }
-  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webpg" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
+  row.innerHTML = `<div class="msg-avatar"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div><div class="msg-bubble">${htmlContent}${optsHTML}</div>`;
   msgContainer.appendChild(row);
   if (options.length) {
     row.querySelectorAll('.msg-options button').forEach((btn, i) => btn.addEventListener('click', () => options[i].action()));

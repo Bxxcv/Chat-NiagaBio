@@ -120,7 +120,10 @@ module.exports = async (req, res) => {
       }),
       signal: AbortSignal.timeout(20000)
     });
-    if (!orRes.ok) throw new Error(`openrouter_${orRes.status}`);
+    if (!orRes.ok) {
+      const errBody = await orRes.text().catch(() => '');
+      throw new Error(`openrouter_${orRes.status}: ${errBody.slice(0, 300)}`);
+    }
     const orData = await orRes.json();
     aiText = sanitizeText(orData?.choices?.[0]?.message?.content || '');
     if (!aiText) throw new Error('empty_ai_response');
