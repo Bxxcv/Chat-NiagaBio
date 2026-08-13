@@ -1,29 +1,23 @@
-# NiagaBio Chatbot — Supabase Project #2
+# NiagaBio Chatbot (Supabase #2)
 
-Project Supabase baru khusus chatbot. Database NiagaBio utama tidak disentuh.
+Implementasi sesuai `MASTER-PROMPT.md`. Stack: HTML/CSS/Vanilla JS + Vercel Serverless Functions + Supabase.
 
-## Stack
-- Frontend: HTML + CSS + Vanilla JS
-- Backend: Supabase #2
-- AI: OpenRouter
-- AI proxy: Vercel Serverless Function
-- Admin: halaman `/admin-master` + Supabase Auth
-- Chat Admin: WhatsApp 085191245042
+## Struktur
+- `index.html`, `css/`, `js/` — widget chat (public).
+- `admin-master/` — dashboard admin (login Supabase Auth + RLS).
+- `api/` — serverless functions (verify-contact, chat, request-admin, public-config).
+- `supabase/schema.sql` — schema DB (sama seperti sebelumnya).
 
-## Aturan inti
-1. Jangan copy schema core NiagaBio.
-2. RLS wajib.
-3. API key AI dan service role hanya server-side.
-4. Visitor dan customer punya persona AI berbeda.
-5. Status registered harus diverifikasi server-side terhadap Supabase utama.
-6. Tidak ada fake queue.
-7. Tahap pertama Chat Admin diarahkan WhatsApp.
-8. Admin Master terpisah dan protected.
+## Setup
+1. Buat project Supabase baru (#2), jalankan `supabase/schema.sql`.
+2. Enable **Anonymous Sign-Ins** di Supabase Auth settings.
+3. Buat 1 Auth user pertama (dashboard Supabase) untuk admin, lalu insert manual row di `chat_admin_users` dengan `role='master'`.
+4. Copy `.env.example` -> isi semua env di Vercel Project Settings.
+5. **PENTING**: `MAIN_NIAGABIO_TABLE` / `MAIN_NIAGABIO_EMAIL_COLUMN` harus disesuaikan dengan skema Supabase #1 (NiagaBio utama) — cek nama tabel/kolom email akun seller yang sebenarnya. Default: `profiles.email`.
+6. `npm install` lalu `vercel deploy`.
 
-## Flow identitas
-User isi nama/nama toko + email + WhatsApp -> anonymous auth chatbot -> `/api/verify-contact` -> server mengecek email di Supabase utama -> `customer`, `prospect`, atau `unknown`.
-
-`unknown` berarti lookup gagal; jangan menebak.
-
-## UI
-Gunakan `niagabio_chat_widget.html` sebagai acuan visual. Pertahankan shell chat mobile, header hijau, avatar, quick actions, typing indicator, onboarding, composer, dan menu. Buang fake queue.
+## Yang belum termasuk (next iteration)
+- Realtime chat (masih polling untuk admin).
+- Upload foto tersimpan ke storage (saat ini foto customer hanya preview lokal, belum dikirim ke AI/admin — perlu Supabase Storage bucket).
+- Settings & notifications UI di admin (tabel `chat_settings`/`chat_notifications` sudah ada, endpoint/UI belum dibuat).
+- Rate limit saat ini per-session via DB count (bukan per-IP).

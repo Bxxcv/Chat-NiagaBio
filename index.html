@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NiagaBio Live Chat Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="/css/widget.css">
+</head>
+<body>
+  <div class="nb-shell">
+    <header class="nb-header">
+      <div class="nb-header-row">
+        <div class="nb-header-id">
+          <div class="nb-avatar">
+            <img src="assets/bot-avatar.webp" alt="NiagaBio" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';">
+            <span class="nb-dot"></span>
+          </div>
+          <div>
+            <h1>NiagaBio Assistant</h1>
+            <p><span class="nb-dot-sm"></span> Online</p>
+          </div>
+        </div>
+        <div class="nb-menu-wrap">
+          <button id="menuBtn" class="nb-icon-btn" aria-label="Menu"><i class="bi bi-three-dots-vertical"></i></button>
+          <div id="headerDropdown" class="nb-dropdown hidden">
+            <a href="https://niagabio.com" target="_blank" rel="noopener noreferrer"><i class="bi bi-globe"></i><span>Halaman Brand</span></a>
+            <button id="resetBtn" type="button"><i class="bi bi-arrow-clockwise"></i><span>Ganti Akun / Reset</span></button>
+            <div class="nb-divider"></div>
+            <button id="closeSessionBtn" type="button" class="nb-danger-item"><i class="bi bi-x-circle"></i><span>Tutup Chat</span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="chatBody" class="nb-body">
+      <div id="dynamicMessages" class="nb-messages"></div>
+      <div id="typingIndicator" class="nb-typing hidden">
+        <div class="nb-avatar-sm"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div>
+        <div class="nb-typing-bubble"><span></span><span></span><span></span></div>
+      </div>
+    </main>
+
+    <footer class="nb-footer">
+      <div id="chatBlockOverlay" class="nb-block-overlay hidden"></div>
+
+      <div id="attachmentPreview" class="nb-attach-preview hidden">
+        <img id="previewThumb" alt="Preview">
+        <div class="nb-attach-info">
+          <p id="previewName"></p>
+          <p id="previewSize"></p>
+        </div>
+        <button type="button" id="cancelAttachBtn" aria-label="Hapus"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <form id="chatForm" class="nb-composer">
+        <button type="button" id="uploadBtn" class="nb-icon-btn" title="Lampirkan Foto"><i class="bi bi-link-45deg"></i></button>
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+        <input type="text" id="chatInput" placeholder="Tulis pesan kamu..." autocomplete="off">
+        <button type="submit" id="sendBtn" class="nb-send-btn" aria-label="Kirim"><i class="bi bi-send-fill"></i></button>
+      </form>
+    </footer>
+
+    <div id="onboardingScreen" class="nb-onboarding">
+      <div class="nb-onboarding-card">
+        <div class="nb-onboarding-head">
+          <div class="nb-onboarding-avatar"><img src="assets/bot-avatar.webp" onerror="this.onerror=null;this.src='https://placehold.co/100x100/fffaf0/0f9f68?text=%F0%9F%8C%B1';"></div>
+          <h2>Selamat Datang! 👋</h2>
+          <p>Isi data singkat untuk mulai berkonsultasi dengan <b>NiagaBio Assistant</b>.</p>
+        </div>
+        <form id="onboardingForm">
+          <label>Nama / Nama Toko <span>*</span></label>
+          <input type="text" id="inputName" required placeholder="Contoh: Budi (Toko Kopi)">
+          <label>Email <span>*</span></label>
+          <input type="email" id="inputEmail" required placeholder="nama@email.com">
+          <label>Nomor WhatsApp <span>*</span></label>
+          <input type="tel" id="inputPhone" required placeholder="08123456789">
+          <button type="submit" id="onboardingSubmit"><span>Mulai Chat Sekarang</span><i class="bi bi-arrow-right"></i></button>
+          <p id="onboardingError" class="nb-error hidden"></p>
+        </form>
+      </div>
+    </div>
+
+    <div id="imageModal" class="nb-image-modal hidden">
+      <button id="closeImageModalBtn" class="nb-image-modal-close"><i class="bi bi-x-lg"></i></button>
+      <img id="modalImg" alt="Preview">
+    </div>
+  </div>
+
+  <script type="module" src="/js/widget.js"></script>
+</body>
+</html>

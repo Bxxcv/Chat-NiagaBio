@@ -1,0 +1,9 @@
+{
+  "name": "chat-niagabio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
