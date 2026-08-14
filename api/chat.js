@@ -120,7 +120,7 @@ module.exports = async (req, res) => {
         temperature: 0.6,
         max_tokens: 700
       }),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(45000)
     });
     if (!orRes.ok) {
       const errBody = await orRes.text().catch(() => '');
