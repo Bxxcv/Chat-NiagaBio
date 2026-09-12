@@ -56,13 +56,23 @@ function showOnboardingError(msg) {
 }
 
 function bindStaticEvents() {
-  document.getElementById('menuBtn').onclick = () => document.getElementById('headerDropdown').classList.toggle('hidden');
+  document.getElementById('menuBtn').onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('headerDropdown').classList.toggle('hidden');
+  };
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('headerDropdown');
+    if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && e.target.id !== 'menuBtn') {
+      dropdown.classList.add('hidden');
+    }
+  });
   document.getElementById('resetBtn').onclick = resetSession;
   document.getElementById('closeSessionBtn').onclick = closeChatSession;
   document.getElementById('onboardingForm').addEventListener('submit', handleOnboarding);
   document.getElementById('chatForm').addEventListener('submit', handleSend);
   document.getElementById('uploadBtn').onclick = () => document.getElementById('imageInput').click();
   document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+  chatInput.addEventListener('input', autoGrowInput);
   document.getElementById('cancelAttachBtn').onclick = cancelAttachment;
   document.getElementById('closeImageModalBtn').onclick = closeImageModal;
 }
@@ -150,6 +160,7 @@ async function handleSend(e) {
     const file = pendingAttachment.file;
     cancelAttachment();
     chatInput.value = '';
+    autoGrowInput();
     sendBtn.disabled = true;
     showTyping();
     try {
@@ -174,6 +185,7 @@ async function handleSend(e) {
 
   const msgId = addUserMessage(text);
   chatInput.value = '';
+    autoGrowInput();
   sendBtn.disabled = true;
   await sendToBot(text, null, msgId);
   sendBtn.disabled = false;
@@ -216,6 +228,11 @@ async function sendToBot(text, imageUrl, msgId) {
     ]);
     console.error(err);
   }
+}
+
+function autoGrowInput() {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

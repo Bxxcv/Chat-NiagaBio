@@ -663,7 +663,7 @@ body {
   }
 }
 
-.nb-composer input[type=text] {
+#chatInput {
   flex: 1;
   min-width: 0;
   background: var(--nb-canvas);
@@ -671,35 +671,38 @@ body {
   border-radius: var(--r-md);
   padding: 10px var(--s-3);
   font-size: 13px;
+  line-height: 1.4;
   color: var(--nb-ink);
   font-family: inherit;
   transition: all 0.2s ease;
   resize: none;
-  max-height: 100px;
+  overflow-y: auto;
+  max-height: 120px;
+  min-height: 40px;
 }
 
 @media (min-width: 768px) {
-  .nb-composer input[type=text] {
+  #chatInput {
     padding: 12px var(--s-4);
     font-size: 14px;
   }
 }
 
 @media (min-width: 1200px) {
-  .nb-composer input[type=text] {
+  #chatInput {
     padding: 14px var(--s-5);
     font-size: 15px;
   }
 }
 
-.nb-composer input[type=text]:focus {
+#chatInput:focus {
   outline: none;
   border-color: var(--nb-primary);
   background: var(--nb-surface);
   box-shadow: 0 0 0 3px rgba(14,143,95,.08);
 }
 
-.nb-composer input[type=text]::placeholder {
+#chatInput::placeholder {
   color: #9aa8a2;
 }
 
