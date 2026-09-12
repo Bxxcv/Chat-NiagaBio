@@ -35,12 +35,10 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
 .admin-tabs button.active { color: var(--nb-primary-ink); border-color: var(--nb-primary); }
 
 .admin-main { padding: var(--s-5); }
-.admin-split { display: grid; grid-template-columns: 290px 1fr; gap: var(--s-4); height: calc(100vh - 168px); }
 .admin-list { background: var(--nb-surface); border: 1px solid var(--nb-border); border-radius: var(--r-md); overflow-y: auto; }
 .admin-list-item { padding: var(--s-3); border-bottom: 1px solid var(--nb-canvas); cursor: pointer; font-size: 12.5px; }
 .admin-list-item:hover { background: var(--nb-canvas); }
 .admin-list-item.active { background: #eaf6ef; }
-.admin-list-item .name { font-weight: 700; }
 .admin-list-item .meta { color: var(--nb-muted); font-size: 11px; margin-top: 2px; }
 .admin-thread { background: var(--nb-surface); border: 1px solid var(--nb-border); border-radius: var(--r-md); overflow-y: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-2); }
 .admin-empty { color: var(--nb-muted); font-size: 12.5px; text-align: center; margin-top: 40px; }
@@ -84,7 +82,6 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
   .admin-tabs { padding: var(--s-2) var(--s-3) 0; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
   .admin-tabs::-webkit-scrollbar { display: none; }
   .admin-main { padding: var(--s-3); }
-  .admin-split { grid-template-columns: 1fr; height: auto; }
   .admin-list { max-height: 220px; }
   .admin-thread { min-height: 260px; max-height: 50vh; }
   .notif-dropdown { right: var(--s-3); top: 60px; width: calc(100vw - 24px); }
@@ -138,7 +135,7 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
 .quick-reply-row button { background: none; border: none; color: #b3261e; cursor: pointer; }
 
 @media (max-width: 900px) {
-  .admin-split { height: auto; }
+  .admin-split { grid-template-columns: 1fr; height: auto; }
   .admin-list-col { max-height: 260px; }
   .admin-thread-col { min-height: 360px; }
   .quick-reply-list { width: calc(100vw - 48px); left: -4px; }
