@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 let supabase = null;
 let currentRole = null;
+let currentAdminId = null;
 let sessions = [];
 let activeSessionId = null;
 let pollTimer = null;
@@ -15,6 +16,12 @@ function init() {
   document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   document.querySelectorAll('.admin-tabs button').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
   document.getElementById('addAdminForm').addEventListener('submit', handleAddAdmin);
+  document.getElementById('notifBell').addEventListener('click', toggleNotifDropdown);
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('notifDropdown').contains(e.target) && e.target.closest('#notifBell') == null) {
+      document.getElementById('notifDropdown').classList.add('hidden');
+    }
+  });
 
   loadConfigAndRestoreSession();
 }
@@ -71,6 +78,7 @@ async function enterDashboard() {
   }
 
   currentRole = adminRow.role;
+  currentAdminId = user.id;
   document.getElementById('adminName').textContent = `${adminRow.display_name} (${adminRow.role})`;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
@@ -78,7 +86,8 @@ async function enterDashboard() {
 
   await loadSessions();
   await loadLeads();
-  pollTimer = setInterval(loadSessions, 15000);
+  await loadNotifications();
+  pollTimer = setInterval(() => { loadSessions(); loadNotifications(); }, 15000);
 }
 
 async function handleLogout() {
@@ -139,9 +148,13 @@ async function loadLeads() {
     .limit(50);
   const body = document.getElementById('leadsBody');
   if (error) { body.innerHTML = ''; return; }
-  body.innerHTML = (data || []).map(l => `
-    <tr><td>${formatTime(l.created_at)}</td><td>${escapeHTML(l.event_type)}</td><td>${l.score}</td><td>${l.session_id ? l.session_id.slice(0, 8) : '-'}</td></tr>
-  `).join('');
+  body.innerHTML = (data || []).map(l => {
+    const suspicious = l.event_type === 'suspicious_prompt';
+    const eventLabel = suspicious
+      ? `<span class="badge-danger"><i class="bi bi-shield-exclamation"></i> suspicious_prompt</span>`
+      : escapeHTML(l.event_type);
+    return `<tr class="${suspicious ? 'row-danger' : ''}"><td>${formatTime(l.created_at)}</td><td>${eventLabel}</td><td>${l.score}</td><td>${l.session_id ? l.session_id.slice(0, 8) : '-'}</td></tr>`;
+  }).join('');
 }
 
 async function loadAdmins() {
@@ -163,6 +176,46 @@ async function handleAddAdmin(e) {
   if (error) { alert('Gagal menambah admin: ' + error.message); return; }
   document.getElementById('addAdminForm').reset();
   loadAdmins();
+}
+
+async function loadNotifications() {
+  const { data, error } = await supabase
+    .from('chat_notifications')
+    .select('*')
+    .or(`recipient_admin_id.is.null,recipient_admin_id.eq.${currentAdminId}`)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error) { console.error(error); return; }
+  const list = data || [];
+  const unread = list.filter(n => !n.read_at).length;
+  const badge = document.getElementById('notifBadge');
+  badge.textContent = unread > 9 ? '9+' : String(unread);
+  badge.classList.toggle('hidden', unread === 0);
+
+  const listEl = document.getElementById('notifList');
+  listEl.innerHTML = list.length ? list.map(n => `
+    <div class="notif-item ${n.read_at ? '' : 'unread'}" data-id="${n.id}">
+      <div class="notif-item-title"><i class="bi ${n.type === 'security' ? 'bi-shield-exclamation' : 'bi-person-badge'}"></i> ${escapeHTML(n.title)}</div>
+      <div class="notif-item-body">${escapeHTML(n.body)}</div>
+      <div class="notif-item-time">${formatTime(n.created_at)}</div>
+    </div>
+  `).join('') : '<p class="admin-empty">Tidak ada notifikasi.</p>';
+
+  listEl.querySelectorAll('.notif-item').forEach(item => item.addEventListener('click', () => {
+    const notif = list.find(n => n.id === item.dataset.id);
+    if (notif?.session_id) { switchTab('sessions'); openSession(notif.session_id); }
+    markNotifRead(item.dataset.id);
+    document.getElementById('notifDropdown').classList.add('hidden');
+  }));
+}
+
+function toggleNotifDropdown() {
+  document.getElementById('notifDropdown').classList.toggle('hidden');
+}
+
+async function markNotifRead(id) {
+  await supabase.from('chat_notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
+  loadNotifications();
 }
 
 function formatTime(iso) {

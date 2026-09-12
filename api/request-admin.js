@@ -30,6 +30,13 @@ module.exports = async (req, res) => {
     event_type: 'request_admin',
     score: 10
   });
+  await chat.from('chat_notifications').insert({
+    recipient_admin_id: null,
+    type: 'request_admin',
+    title: 'Ada yang minta bicara dengan Admin',
+    body: 'Pengunjung meminta dialihkan ke Admin manusia di sesi chat ini.',
+    session_id: sessionId
+  });
 
   const waUrl = process.env.ADMIN_WHATSAPP_URL || 'https://wa.me/6285191245042';
   return res.status(200).json({ whatsapp_url: waUrl });

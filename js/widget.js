@@ -106,9 +106,13 @@ async function handleOnboarding(e) {
 
 function startChatFlow(profile) {
   const firstName = profile.name ? profile.name.split(' ')[0] : 'Kak';
-  addBotMessage(`Halo <b>${escapeHTML(firstName)}</b>, selamat datang Perkenalkan saya Nia, Assistant Niaga Bio. Ada yang bisa saya bantu?`, [
-    { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
-  ]);
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    addBotMessage(`Halo <b>${escapeHTML(firstName)}</b>, selamat datang Perkenalkan saya Nia, Assistant Niaga Bio. Ada yang bisa saya bantu?`, [
+      { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
+    ]);
+  }, 900);
 }
 
 async function requestAdmin() {
@@ -149,27 +153,41 @@ async function handleSend(e) {
     return;
   }
 
-  addUserMessage(text);
+  const msgId = addUserMessage(text);
   chatInput.value = '';
   sendBtn.disabled = true;
+
+  // Kirim request-nya sekarang juga (nggak nunggu animasi), tapi tampilan
+  // "Dibaca" + "mengetik" tetap dipacing biar terasa manusiawi, bukan instan.
+  const fetchPromise = fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ session_id: chatSessionId, message: text })
+  });
+
+  await sleep(500 + Math.random() * 400);
+  markAsRead(msgId);
   showTyping();
+  const typingStartedAt = Date.now();
 
   try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ session_id: chatSessionId, message: text })
-    });
+    const res = await fetchPromise;
     const body = await res.json();
-    hideTyping();
+
     if (res.status === 429) {
+      await waitRemaining(typingStartedAt, humanTypingDelay('Pesan terlalu cepat, tunggu sebentar ya.'));
+      hideTyping();
       addBotMessage('Pesan terlalu cepat, tunggu sebentar ya.');
       return;
     }
     if (!res.ok) throw new Error(body.error || 'chat_failed');
     chatSessionId = body.session_id;
+
+    await waitRemaining(typingStartedAt, humanTypingDelay(body.reply));
+    hideTyping();
     addBotMessage(formatReply(body.reply));
   } catch (err) {
+    await waitRemaining(typingStartedAt, 900);
     hideTyping();
     addBotMessage('Maaf, terjadi gangguan. Silakan coba lagi atau hubungi Admin.', [
       { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
@@ -178,6 +196,12 @@ async function handleSend(e) {
   } finally {
     sendBtn.disabled = false;
   }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function waitRemaining(since, targetMs) {
+  const elapsed = Date.now() - since;
+  if (elapsed < targetMs) await sleep(targetMs - elapsed);
 }
 
 function resetSession() {
@@ -245,10 +269,29 @@ function closeImageModal() { document.getElementById('imageModal').classList.add
 /* Messaging */
 function addUserMessage(text) {
   const row = document.createElement('div');
+  const msgId = 'u' + Date.now() + Math.random().toString(36).slice(2, 6);
   row.className = 'msg-row user';
-  row.innerHTML = `<div class="msg-bubble">${escapeHTML(text)}<div class="msg-meta"><i class="bi bi-check2-all"></i> Terkirim</div></div>`;
+  row.dataset.msgId = msgId;
+  row.innerHTML = `<div class="msg-bubble">${escapeHTML(text)}<div class="msg-meta"><i class="bi bi-check2"></i> Terkirim</div></div>`;
   msgContainer.appendChild(row);
   scrollToBottom();
+  return msgId;
+}
+
+function markAsRead(msgId) {
+  if (!msgId) return;
+  const row = msgContainer.querySelector(`[data-msg-id="${msgId}"]`);
+  if (!row) return;
+  const meta = row.querySelector('.msg-meta');
+  if (meta) meta.innerHTML = '<i class="bi bi-check2-all" style="color:#34b7f1"></i> Dibaca';
+}
+
+/* Simulasikan waktu "mengetik" manusia berdasarkan panjang balasan, supaya
+   tidak terasa instan/kaku walau API-nya cepat. Dijaga di rentang wajar. */
+function humanTypingDelay(replyText) {
+  const words = String(replyText || '').trim().split(/\s+/).length;
+  const ms = 350 + words * 90; // ~ kecepatan mengetik natural
+  return Math.max(700, Math.min(ms, 3200));
 }
 
 function addBotMessage(htmlContent, options = []) {

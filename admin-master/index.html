@@ -23,6 +23,14 @@
     <header class="admin-header">
       <h1><i class="bi bi-shield-check"></i> NiagaBio Admin</h1>
       <div class="admin-header-right">
+        <button id="notifBell" class="notif-bell" aria-label="Notifikasi">
+          <i class="bi bi-bell"></i>
+          <span id="notifBadge" class="notif-badge hidden">0</span>
+        </button>
+        <div id="notifDropdown" class="notif-dropdown hidden">
+          <div class="notif-dropdown-head">Notifikasi</div>
+          <div id="notifList" class="notif-list"><p class="admin-empty">Tidak ada notifikasi.</p></div>
+        </div>
         <span id="adminName"></span>
         <button id="logoutBtn">Keluar</button>
       </div>
