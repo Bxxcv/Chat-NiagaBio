@@ -45,8 +45,36 @@
     <main class="admin-main">
       <section id="tab-sessions" class="admin-panel">
         <div class="admin-split">
-          <div class="admin-list" id="sessionList"></div>
-          <div class="admin-thread" id="sessionThread"><p class="admin-empty">Pilih sesi untuk melihat percakapan.</p></div>
+          <div class="admin-list-col">
+            <div class="admin-list-tools">
+              <input type="search" id="sessionSearch" placeholder="Cari nama/email/WA...">
+              <select id="sessionFilter">
+                <option value="all">Semua sesi</option>
+                <option value="needs_admin">Butuh Admin</option>
+                <option value="open">Terbuka</option>
+                <option value="closed">Ditutup</option>
+              </select>
+            </div>
+            <div class="admin-list" id="sessionList"></div>
+          </div>
+          <div class="admin-thread-col">
+            <div id="threadHeader" class="thread-header hidden">
+              <div>
+                <div class="thread-header-name" id="threadName">-</div>
+                <div class="thread-header-meta" id="threadMeta">-</div>
+              </div>
+              <button id="closeSessionBtn" class="btn-ghost-sm"><i class="bi bi-check2-circle"></i> Tandai Selesai</button>
+            </div>
+            <div class="admin-thread" id="sessionThread"><p class="admin-empty">Pilih sesi untuk melihat percakapan.</p></div>
+            <form id="replyForm" class="reply-composer hidden">
+              <div class="quick-reply-wrap">
+                <button type="button" id="quickReplyBtn" title="Balasan cepat"><i class="bi bi-lightning-charge-fill"></i></button>
+                <div id="quickReplyList" class="quick-reply-list hidden"></div>
+              </div>
+              <textarea id="replyText" placeholder="Ketik balasan ke user..." rows="1" required></textarea>
+              <button type="submit" title="Kirim"><i class="bi bi-send-fill"></i></button>
+            </form>
+          </div>
         </div>
       </section>
 
@@ -68,6 +96,13 @@
           <thead><tr><th>Nama</th><th>Role</th><th>Status</th></tr></thead>
           <tbody id="adminsBody"></tbody>
         </table>
+        <h3 class="admin-subheading">Balasan Cepat</h3>
+        <p class="admin-hint">Template jawaban yang bisa dipilih cepat saat membalas chat user.</p>
+        <form id="addQuickReplyForm" class="admin-inline-form">
+          <input type="text" id="newQuickReply" placeholder="Tulis balasan template...">
+          <button type="submit">Tambah</button>
+        </form>
+        <div id="quickReplyManageList"></div>
       </section>
     </main>
   </div>

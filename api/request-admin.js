@@ -24,6 +24,10 @@ module.exports = async (req, res) => {
     }
   }
 
+  if (sessionId) {
+    await chat.from('chat_sessions').update({ needs_admin: true }).eq('id', sessionId);
+  }
+
   await chat.from('chat_lead_events').insert({
     visitor_id: user.id,
     session_id: sessionId,

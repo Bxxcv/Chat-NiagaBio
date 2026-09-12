@@ -16,6 +16,14 @@ function init() {
   document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   document.querySelectorAll('.admin-tabs button').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
   document.getElementById('addAdminForm').addEventListener('submit', handleAddAdmin);
+  document.getElementById('addQuickReplyForm').addEventListener('submit', handleAddQuickReply);
+  document.getElementById('replyForm').addEventListener('submit', handleAdminReply);
+  document.getElementById('closeSessionBtn').addEventListener('click', handleCloseSession);
+  document.getElementById('quickReplyBtn').addEventListener('click', () => {
+    document.getElementById('quickReplyList').classList.toggle('hidden');
+  });
+  document.getElementById('sessionSearch').addEventListener('input', renderSessionList);
+  document.getElementById('sessionFilter').addEventListener('change', renderSessionList);
   document.getElementById('notifBell').addEventListener('click', toggleNotifDropdown);
   document.addEventListener('click', (e) => {
     if (!document.getElementById('notifDropdown').contains(e.target) && e.target.closest('#notifBell') == null) {
@@ -87,6 +95,7 @@ async function enterDashboard() {
   await loadSessions();
   await loadLeads();
   await loadNotifications();
+  await renderQuickReplyUI();
   pollTimer = setInterval(() => { loadSessions(); loadNotifications(); }, 15000);
 }
 
@@ -101,43 +110,138 @@ function switchTab(tab) {
   document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
   document.getElementById(`tab-${tab}`).classList.remove('hidden');
-  if (tab === 'admins') loadAdmins();
+  if (tab === 'admins') { loadAdmins(); renderQuickReplyUI(); }
 }
 
 async function loadSessions() {
   const { data, error } = await supabase
     .from('chat_sessions')
-    .select('id,status,mode,title,last_message_at,updated_at,chat_contacts:visitor_id(name,email,whatsapp)')
+    .select('id,status,mode,title,needs_admin,last_message_at,updated_at,chat_contacts:visitor_id(name,email,whatsapp)')
     .order('updated_at', { ascending: false })
     .limit(50);
   if (error) { console.error(error); return; }
   sessions = data || [];
   renderSessionList();
+  if (activeSessionId) refreshThread();
 }
 
 function renderSessionList() {
+  const q = (document.getElementById('sessionSearch').value || '').toLowerCase();
+  const filter = document.getElementById('sessionFilter').value;
+  const filtered = sessions.filter(s => {
+    if (filter === 'needs_admin' && !s.needs_admin) return false;
+    if (filter === 'open' && s.status !== 'open') return false;
+    if (filter === 'closed' && s.status !== 'closed') return false;
+    if (!q) return true;
+    const hay = `${s.chat_contacts?.name || ''} ${s.chat_contacts?.email || ''} ${s.chat_contacts?.whatsapp || ''}`.toLowerCase();
+    return hay.includes(q);
+  });
   const el = document.getElementById('sessionList');
-  el.innerHTML = sessions.map(s => `
+  el.innerHTML = filtered.map(s => `
     <div class="admin-list-item ${s.id === activeSessionId ? 'active' : ''}" data-id="${s.id}">
-      <div class="name">${escapeHTML(s.chat_contacts?.name || 'Unknown')}</div>
-      <div class="meta">${s.mode} • ${s.status} • ${formatTime(s.updated_at)}</div>
+      <div class="name">${escapeHTML(s.chat_contacts?.name || 'Unknown')} ${s.needs_admin ? '<span class="dot-alert" title="Butuh Admin"></span>' : ''}</div>
+      <div class="meta">${s.mode} • <span class="tag-status tag-${s.status}">${s.status}</span> • ${formatTime(s.updated_at)}</div>
     </div>
-  `).join('') || '<p class="admin-empty">Belum ada sesi.</p>';
+  `).join('') || '<p class="admin-empty">Tidak ada sesi yang cocok.</p>';
   el.querySelectorAll('.admin-list-item').forEach(item => item.addEventListener('click', () => openSession(item.dataset.id)));
 }
 
 async function openSession(id) {
   activeSessionId = id;
   renderSessionList();
+  const s = sessions.find(x => x.id === id);
+  document.getElementById('threadHeader').classList.remove('hidden');
+  document.getElementById('replyForm').classList.remove('hidden');
+  document.getElementById('threadName').textContent = s?.chat_contacts?.name || 'Unknown';
+  document.getElementById('threadMeta').textContent = `${s?.chat_contacts?.email || ''} ${s?.chat_contacts?.whatsapp ? '• ' + s.chat_contacts.whatsapp : ''}`;
+  await refreshThread();
+}
+
+async function refreshThread() {
+  if (!activeSessionId) return;
   const { data, error } = await supabase
     .from('chat_messages')
     .select('*')
-    .eq('session_id', id)
+    .eq('session_id', activeSessionId)
     .order('created_at', { ascending: true });
   const el = document.getElementById('sessionThread');
   if (error) { el.innerHTML = '<p class="admin-empty">Gagal memuat pesan.</p>'; return; }
-  el.innerHTML = (data || []).map(m => `<div class="thread-msg ${m.sender}">${escapeHTML(m.content)}</div>`).join('') || '<p class="admin-empty">Belum ada pesan.</p>';
-  el.scrollTop = el.scrollHeight;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
+  el.innerHTML = (data || []).map(renderThreadMsg).join('') || '<p class="admin-empty">Belum ada pesan.</p>';
+  if (atBottom || el.dataset.first !== '1') { el.scrollTop = el.scrollHeight; el.dataset.first = '1'; }
+}
+
+function renderThreadMsg(m) {
+  const senderLabel = { user: '', ai: 'Nia (AI)', admin: 'Anda (Admin)', system: 'Sistem' }[m.sender] || '';
+  const media = Array.isArray(m.media) && m.media.length
+    ? m.media.map(x => `<img src="${escapeHTML(x.url)}" class="thread-media" alt="foto dari user">`).join('')
+    : '';
+  return `<div class="thread-msg ${m.sender}">${senderLabel ? `<span class="thread-msg-label">${senderLabel}</span>` : ''}${media}${escapeHTML(m.content)}</div>`;
+}
+
+async function handleAdminReply(e) {
+  e.preventDefault();
+  const textEl = document.getElementById('replyText');
+  const text = textEl.value.trim();
+  if (!text || !activeSessionId) return;
+  const { error } = await supabase.from('chat_messages').insert({
+    session_id: activeSessionId,
+    sender: 'admin',
+    content: text
+  });
+  if (error) { alert('Gagal mengirim balasan: ' + error.message); return; }
+  await supabase.from('chat_sessions').update({ needs_admin: false, updated_at: new Date().toISOString() }).eq('id', activeSessionId);
+  textEl.value = '';
+  document.getElementById('quickReplyList').classList.add('hidden');
+  await refreshThread();
+  await loadSessions();
+}
+
+async function handleCloseSession() {
+  if (!activeSessionId) return;
+  await supabase.from('chat_sessions').update({ status: 'closed', closed_at: new Date().toISOString(), needs_admin: false }).eq('id', activeSessionId);
+  await loadSessions();
+}
+
+async function loadQuickReplies() {
+  const { data } = await supabase.from('chat_settings').select('value').eq('key', 'quick_replies').maybeSingle();
+  return Array.isArray(data?.value) ? data.value : [];
+}
+
+async function renderQuickReplyUI() {
+  const replies = await loadQuickReplies();
+  document.getElementById('quickReplyList').innerHTML = replies.length
+    ? replies.map((r, i) => `<button type="button" data-i="${i}">${escapeHTML(r)}</button>`).join('')
+    : '<p class="admin-empty">Belum ada balasan cepat. Tambah di tab Kelola Admin.</p>';
+  document.getElementById('quickReplyList').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('replyText').value = replies[b.dataset.i];
+    document.getElementById('quickReplyList').classList.add('hidden');
+    document.getElementById('replyText').focus();
+  }));
+
+  const manageList = document.getElementById('quickReplyManageList');
+  if (manageList) {
+    manageList.innerHTML = replies.length
+      ? replies.map((r, i) => `<div class="quick-reply-row"><span>${escapeHTML(r)}</span><button type="button" data-i="${i}"><i class="bi bi-trash"></i></button></div>`).join('')
+      : '<p class="admin-empty">Belum ada balasan cepat.</p>';
+    manageList.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+      const updated = replies.filter((_, i) => String(i) !== b.dataset.i);
+      await supabase.from('chat_settings').upsert({ key: 'quick_replies', value: updated });
+      renderQuickReplyUI();
+    }));
+  }
+}
+
+async function handleAddQuickReply(e) {
+  e.preventDefault();
+  const input = document.getElementById('newQuickReply');
+  const text = input.value.trim();
+  if (!text) return;
+  const replies = await loadQuickReplies();
+  replies.push(text);
+  await supabase.from('chat_settings').upsert({ key: 'quick_replies', value: replies });
+  input.value = '';
+  renderQuickReplyUI();
 }
 
 async function loadLeads() {

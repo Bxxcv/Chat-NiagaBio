@@ -7,6 +7,8 @@ let supabase = null;
 let session = null; // supabase auth session
 let chatSessionId = null;
 let pendingAttachment = null;
+let lastSeenMessageId = null;
+let adminPollTimer = null;
 
 const chatInput = document.getElementById('chatInput');
 const msgContainer = document.getElementById('dynamicMessages');
@@ -106,6 +108,7 @@ async function handleOnboarding(e) {
 
 function startChatFlow(profile) {
   const firstName = profile.name ? profile.name.split(' ')[0] : 'Kak';
+  startAdminPolling();
   showTyping();
   setTimeout(() => {
     hideTyping();
@@ -141,32 +144,50 @@ async function handleSend(e) {
   const text = chatInput.value.trim();
   if (!text && !pendingAttachment) return;
 
+  let imageUrl = null;
   if (pendingAttachment) {
     addUserImageMessage(pendingAttachment.dataUrl, text);
+    const file = pendingAttachment.file;
     cancelAttachment();
     chatInput.value = '';
+    sendBtn.disabled = true;
     showTyping();
-    setTimeout(() => {
+    try {
+      const path = `${session.user.id}/${Date.now()}-${file.name}`.replace(/[^a-zA-Z0-9._\/-]/g, '_');
+      const { error: upErr } = await supabase.storage.from('chat-media').upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('chat-media').getPublicUrl(path);
+      imageUrl = pub?.publicUrl || null;
+    } catch (err) {
       hideTyping();
-      addBotMessage('Foto diterima. Untuk saat ini AI Assistant hanya memproses teks — jelaskan kendalanya ya, atau hubungi Admin untuk kirim foto.');
-    }, 600);
+      addBotMessage('Gagal mengunggah foto. Coba lagi atau hubungi Admin.', [
+        { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
+      ]);
+      console.error(err);
+      sendBtn.disabled = false;
+      return;
+    }
+    await sendToBot(text, imageUrl, null);
+    sendBtn.disabled = false;
     return;
   }
 
   const msgId = addUserMessage(text);
   chatInput.value = '';
   sendBtn.disabled = true;
+  await sendToBot(text, null, msgId);
+  sendBtn.disabled = false;
+}
 
-  // Kirim request-nya sekarang juga (nggak nunggu animasi), tapi tampilan
-  // "Dibaca" + "mengetik" tetap dipacing biar terasa manusiawi, bukan instan.
+async function sendToBot(text, imageUrl, msgId) {
   const fetchPromise = fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-    body: JSON.stringify({ session_id: chatSessionId, message: text })
+    body: JSON.stringify({ session_id: chatSessionId, message: text, image_url: imageUrl })
   });
 
   await sleep(500 + Math.random() * 400);
-  markAsRead(msgId);
+  if (msgId) markAsRead(msgId);
   showTyping();
   const typingStartedAt = Date.now();
 
@@ -182,6 +203,7 @@ async function handleSend(e) {
     }
     if (!res.ok) throw new Error(body.error || 'chat_failed');
     chatSessionId = body.session_id;
+    lastSeenMessageId = body.message_id || lastSeenMessageId;
 
     await waitRemaining(typingStartedAt, humanTypingDelay(body.reply));
     hideTyping();
@@ -193,8 +215,6 @@ async function handleSend(e) {
       { text: '<i class="bi bi-person-badge"></i> Bicara dengan Admin', action: () => requestAdmin() }
     ]);
     console.error(err);
-  } finally {
-    sendBtn.disabled = false;
   }
 }
 
@@ -204,7 +224,43 @@ async function waitRemaining(since, targetMs) {
   if (elapsed < targetMs) await sleep(targetMs - elapsed);
 }
 
+function startAdminPolling() {
+  stopAdminPolling();
+  let lastCheckedAt = new Date().toISOString();
+  adminPollTimer = setInterval(async () => {
+    if (!chatSessionId || !supabase) return;
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('id,content,media,created_at')
+      .eq('session_id', chatSessionId)
+      .eq('sender', 'admin')
+      .gt('created_at', lastCheckedAt)
+      .order('created_at', { ascending: true });
+    if (error || !data?.length) return;
+    lastCheckedAt = data[data.length - 1].created_at;
+    for (const m of data) {
+      showTyping();
+      await sleep(humanTypingDelay(m.content));
+      hideTyping();
+      addAdminMessage(m.content);
+    }
+  }, 5000);
+}
+function stopAdminPolling() {
+  if (adminPollTimer) clearInterval(adminPollTimer);
+  adminPollTimer = null;
+}
+
+function addAdminMessage(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.innerHTML = `<div class="msg-avatar"><i class="bi bi-person-badge-fill" style="font-size:18px;color:#0e8f5f"></i></div><div class="msg-bubble"><span class="admin-label">Admin NiagaBio</span>${formatReply(text)}</div>`;
+  msgContainer.appendChild(row);
+  scrollToBottom();
+}
+
 function resetSession() {
+  stopAdminPolling();
   localStorage.removeItem(STORAGE_PROFILE_KEY);
   chatSessionId = null;
   msgContainer.innerHTML = '';
@@ -213,6 +269,7 @@ function resetSession() {
 }
 
 function closeChatSession() {
+  stopAdminPolling();
   document.getElementById('headerDropdown').classList.add('hidden');
   setBlockOverlay('Sesi chat ditutup. Klik untuk memulai sesi baru.', true);
   addBotMessage('Sesi chat telah ditutup. Terima kasih.');
@@ -233,7 +290,7 @@ function handleImageUpload(e) {
   if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) { alert(`Maksimal ${MAX_FILE_SIZE_MB}MB.`); e.target.value = ''; return; }
   const reader = new FileReader();
   reader.onload = (evt) => {
-    pendingAttachment = { dataUrl: evt.target.result, name: file.name, sizeStr: (file.size / 1024).toFixed(0) + ' KB' };
+    pendingAttachment = { file, dataUrl: evt.target.result, name: file.name, sizeStr: (file.size / 1024).toFixed(0) + ' KB' };
     document.getElementById('previewThumb').src = pendingAttachment.dataUrl;
     document.getElementById('previewName').textContent = pendingAttachment.name;
     document.getElementById('previewSize').textContent = pendingAttachment.sizeStr;

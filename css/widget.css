@@ -440,6 +440,14 @@ body {
   border-top-left-radius: 4px;
 }
 
+.admin-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0e8f5f;
+  margin-bottom: 3px;
+}
+
 .msg-meta {
   font-size: 10px;
   margin-top: 5px;

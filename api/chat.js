@@ -74,9 +74,10 @@ module.exports = async (req, res) => {
   }
 
   const rawMessage = (req.body || {}).message;
+  const imageUrl = (req.body || {}).image_url ? String(req.body.image_url).slice(0, 2000) : null;
   let sessionId = (req.body || {}).session_id || null;
   const message = sanitizeText(rawMessage);
-  if (!message) return res.status(400).json({ error: 'empty_message' });
+  if (!message && !imageUrl) return res.status(400).json({ error: 'empty_message' });
 
   const chat = chatAdminClient();
 
@@ -124,10 +125,11 @@ module.exports = async (req, res) => {
   await chat.from('chat_messages').insert({
     session_id: sessionId,
     sender: 'user',
-    content: message
+    content: message || '(mengirim foto)',
+    media: imageUrl ? [{ type: 'image', url: imageUrl }] : []
   });
 
-  if (looksLikeJailbreak(message)) {
+  if (message && looksLikeJailbreak(message)) {
     await chat.from('chat_lead_events').insert({
       visitor_id: user.id,
       session_id: sessionId,
@@ -161,7 +163,7 @@ module.exports = async (req, res) => {
   // Recent context
   const { data: history } = await chat
     .from('chat_messages')
-    .select('sender,content')
+    .select('sender,content,media')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: false })
     .limit(10);
@@ -171,9 +173,27 @@ module.exports = async (req, res) => {
     { role: 'system', content: SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.unknown },
     ...orderedHistory.map(m => ({
       role: m.sender === 'ai' ? 'assistant' : 'user',
-      content: m.content
+      content: (Array.isArray(m.media) && m.media.length && !(imageUrl && m === orderedHistory[orderedHistory.length - 1]))
+        ? `${m.content} [foto terlampir]`
+        : m.content
     }))
   ];
+
+  // Kalau turn sekarang bawa foto, ganti pesan terakhir jadi multimodal
+  // supaya model vision beneran "melihat" gambarnya (bukan cuma teks placeholder).
+  if (imageUrl) {
+    openrouterMessages[openrouterMessages.length - 1] = {
+      role: 'user',
+      content: [
+        { type: 'text', text: message || 'Tolong lihat foto ini.' },
+        { type: 'image_url', image_url: { url: imageUrl } }
+      ]
+    };
+  }
+
+  const modelToUse = imageUrl
+    ? (process.env.OPENROUTER_VISION_MODEL || process.env.OPENROUTER_MODEL || 'openrouter/auto')
+    : (process.env.OPENROUTER_MODEL || 'openrouter/auto');
 
   let aiText = '';
   let errorCode = null;
@@ -185,7 +205,7 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || 'openrouter/auto',
+        model: modelToUse,
         messages: openrouterMessages,
         temperature: 0.6,
         max_tokens: 700
@@ -210,7 +230,7 @@ module.exports = async (req, res) => {
     sender: 'ai',
     content: aiText,
     provider: 'openrouter',
-    model: process.env.OPENROUTER_MODEL || 'openrouter/auto',
+    model: modelToUse,
     error_code: errorCode
   }).select().single();
 
